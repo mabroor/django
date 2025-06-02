@@ -241,37 +241,39 @@ class SafeExceptionReporterFilter:
         Replace the values of variables marked as sensitive with
         stars (*********).
         """
-        sensitive_variables = None
+        sensitive_variables = set()
 
-        # Coroutines don't have a proper `f_back` so they need to be inspected
-        # separately. Handle this by stashing the registered sensitive
-        # variables in a global dict indexed by `hash(file_path:line_number)`.
-        if (
-            tb_frame.f_code.co_flags & inspect.CO_COROUTINE != 0
-            and tb_frame.f_code.co_name != "sensitive_variables_wrapper"
-        ):
-            key = hash(
-                f"{tb_frame.f_code.co_filename}:{tb_frame.f_code.co_firstlineno}"
-            )
-            sensitive_variables = coroutine_functions_to_sensitive_variables.get(
-                key, None
-            )
+        # Collect sensitive variable names from the current frame and all
+        # calling frames. Coroutines don't have a proper `f_back`, so annotations
+        # for them are stored in a global dict indexed by
+        # ``hash(file_path:line_number)``.
+        current_frame = tb_frame
+        while current_frame is not None:
+            vars_in_frame = None
+            if (
+                current_frame.f_code.co_flags & inspect.CO_COROUTINE != 0
+                and current_frame.f_code.co_name != "sensitive_variables_wrapper"
+            ):
+                key = hash(
+                    f"{current_frame.f_code.co_filename}:{current_frame.f_code.co_firstlineno}"
+                )
+                vars_in_frame = coroutine_functions_to_sensitive_variables.get(key)
 
-        if sensitive_variables is None:
-            # Loop through the frame's callers to see if the
-            # sensitive_variables decorator was used.
-            current_frame = tb_frame
-            while current_frame is not None:
-                if (
-                    current_frame.f_code.co_name == "sensitive_variables_wrapper"
-                    and "sensitive_variables_wrapper" in current_frame.f_locals
-                ):
-                    # The sensitive_variables decorator was used, so take note
-                    # of the sensitive variables' names.
-                    wrapper = current_frame.f_locals["sensitive_variables_wrapper"]
-                    sensitive_variables = getattr(wrapper, "sensitive_variables", None)
+            if (
+                vars_in_frame is None
+                and current_frame.f_code.co_name == "sensitive_variables_wrapper"
+                and "sensitive_variables_wrapper" in current_frame.f_locals
+            ):
+                wrapper = current_frame.f_locals["sensitive_variables_wrapper"]
+                vars_in_frame = getattr(wrapper, "sensitive_variables", None)
+
+            if vars_in_frame:
+                if vars_in_frame == "__ALL__":
+                    sensitive_variables = "__ALL__"
                     break
-                current_frame = current_frame.f_back
+                sensitive_variables.update(vars_in_frame)
+
+            current_frame = current_frame.f_back
 
         cleansed = {}
         if self.is_active(request) and sensitive_variables:

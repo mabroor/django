@@ -280,6 +280,25 @@ def sensitive_kwargs_function(sauce=None):
     raise Exception
 
 
+def passthrough_backend(password):
+    raise Exception
+
+
+@sensitive_variables("password")
+def sensitive_passthrough_function(password):
+    passthrough_backend(password)
+
+
+def sensitive_passthrough_view(request):
+    password = request.POST["password"]
+    try:
+        sensitive_passthrough_function(password)
+    except Exception:
+        exc_info = sys.exc_info()
+        send_log(request, exc_info)
+        return technical_500_response(request, *exc_info)
+
+
 class UnsafeExceptionReporterFilter(SafeExceptionReporterFilter):
     """
     Ignores all the filtering done by its parent class.
