@@ -635,7 +635,7 @@ class TestValidators(PostgreSQLSimpleTestCase):
         validator = RangeMaxValueValidator(5)
         validator(NumericRange(0, 5))
         msg = "Ensure that the upper bound of the range is not greater than 5."
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(exceptions.ValidationError, msg) as cm:
             validator(NumericRange(0, 10))
         self.assertEqual(cm.exception.messages[0], msg)
         self.assertEqual(cm.exception.code, "max_value")
@@ -646,7 +646,7 @@ class TestValidators(PostgreSQLSimpleTestCase):
         validator = RangeMinValueValidator(5)
         validator(NumericRange(10, 15))
         msg = "Ensure that the lower bound of the range is not less than 5."
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(exceptions.ValidationError, msg) as cm:
             validator(NumericRange(0, 10))
         self.assertEqual(cm.exception.messages[0], msg)
         self.assertEqual(cm.exception.code, "min_value")
@@ -801,7 +801,10 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_integer_lower_bound_higher(self):
         field = pg_forms.IntegerRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "The start of the range must not exceed the end of the range.",
+        ) as cm:
             field.clean(["10", "2"])
         self.assertEqual(
             cm.exception.messages[0],
@@ -816,26 +819,32 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_integer_incorrect_data_type(self):
         field = pg_forms.IntegerRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter two whole numbers."
+        ) as cm:
             field.clean("1")
         self.assertEqual(cm.exception.messages[0], "Enter two whole numbers.")
         self.assertEqual(cm.exception.code, "invalid")
 
     def test_integer_invalid_lower(self):
         field = pg_forms.IntegerRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter a whole number."
+        ) as cm:
             field.clean(["a", "2"])
-        self.assertEqual(cm.exception.messages[0], "Enter a whole number.")
 
     def test_integer_invalid_upper(self):
         field = pg_forms.IntegerRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter a whole number."
+        ) as cm:
             field.clean(["1", "b"])
-        self.assertEqual(cm.exception.messages[0], "Enter a whole number.")
 
     def test_integer_required(self):
         field = pg_forms.IntegerRangeField(required=True)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "This field is required."
+        ) as cm:
             field.clean(["", ""])
         self.assertEqual(cm.exception.messages[0], "This field is required.")
         value = field.clean([1, ""])
@@ -843,7 +852,10 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_decimal_lower_bound_higher(self):
         field = pg_forms.DecimalRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "The start of the range must not exceed the end of the range.",
+        ) as cm:
             field.clean(["1.8", "1.6"])
         self.assertEqual(
             cm.exception.messages[0],
@@ -858,26 +870,32 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_decimal_incorrect_data_type(self):
         field = pg_forms.DecimalRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter two numbers."
+        ) as cm:
             field.clean("1.6")
         self.assertEqual(cm.exception.messages[0], "Enter two numbers.")
         self.assertEqual(cm.exception.code, "invalid")
 
     def test_decimal_invalid_lower(self):
         field = pg_forms.DecimalRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter a number."
+        ) as cm:
             field.clean(["a", "3.1415926"])
-        self.assertEqual(cm.exception.messages[0], "Enter a number.")
 
     def test_decimal_invalid_upper(self):
         field = pg_forms.DecimalRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter a number."
+        ) as cm:
             field.clean(["1.61803399", "b"])
-        self.assertEqual(cm.exception.messages[0], "Enter a number.")
 
     def test_decimal_required(self):
         field = pg_forms.DecimalRangeField(required=True)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "This field is required."
+        ) as cm:
             field.clean(["", ""])
         self.assertEqual(cm.exception.messages[0], "This field is required.")
         value = field.clean(["1.61803399", ""])
@@ -885,7 +903,10 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_date_lower_bound_higher(self):
         field = pg_forms.DateRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "The start of the range must not exceed the end of the range.",
+        ) as cm:
             field.clean(["2013-04-09", "1976-04-16"])
         self.assertEqual(
             cm.exception.messages[0],
@@ -900,26 +921,28 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_date_incorrect_data_type(self):
         field = pg_forms.DateRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter two valid dates."
+        ) as cm:
             field.clean("1")
         self.assertEqual(cm.exception.messages[0], "Enter two valid dates.")
         self.assertEqual(cm.exception.code, "invalid")
 
     def test_date_invalid_lower(self):
         field = pg_forms.DateRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(exceptions.ValidationError, "Enter a valid date.") as cm:
             field.clean(["a", "2013-04-09"])
-        self.assertEqual(cm.exception.messages[0], "Enter a valid date.")
 
     def test_date_invalid_upper(self):
         field = pg_forms.DateRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(exceptions.ValidationError, "Enter a valid date.") as cm:
             field.clean(["2013-04-09", "b"])
-        self.assertEqual(cm.exception.messages[0], "Enter a valid date.")
 
     def test_date_required(self):
         field = pg_forms.DateRangeField(required=True)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "This field is required."
+        ) as cm:
             field.clean(["", ""])
         self.assertEqual(cm.exception.messages[0], "This field is required.")
         value = field.clean(["1976-04-16", ""])
@@ -943,7 +966,10 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_datetime_lower_bound_higher(self):
         field = pg_forms.DateTimeRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "The start of the range must not exceed the end of the range.",
+        ) as cm:
             field.clean(["2006-10-25 14:59", "2006-10-25 14:58"])
         self.assertEqual(
             cm.exception.messages[0],
@@ -960,26 +986,32 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_datetime_incorrect_data_type(self):
         field = pg_forms.DateTimeRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter two valid date/times."
+        ) as cm:
             field.clean("2013-04-09 11:45")
         self.assertEqual(cm.exception.messages[0], "Enter two valid date/times.")
         self.assertEqual(cm.exception.code, "invalid")
 
     def test_datetime_invalid_lower(self):
         field = pg_forms.DateTimeRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter a valid date/time."
+        ) as cm:
             field.clean(["45", "2013-04-09 11:45"])
-        self.assertEqual(cm.exception.messages[0], "Enter a valid date/time.")
 
     def test_datetime_invalid_upper(self):
         field = pg_forms.DateTimeRangeField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Enter a valid date/time."
+        ) as cm:
             field.clean(["2013-04-09 11:45", "sweet pickles"])
-        self.assertEqual(cm.exception.messages[0], "Enter a valid date/time.")
 
     def test_datetime_required(self):
         field = pg_forms.DateTimeRangeField(required=True)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "This field is required."
+        ) as cm:
             field.clean(["", ""])
         self.assertEqual(cm.exception.messages[0], "This field is required.")
         value = field.clean(["2013-04-09 11:45", ""])

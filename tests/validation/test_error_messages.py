@@ -6,7 +6,7 @@ from django.db import models
 
 class ValidationMessagesTest(TestCase):
     def _test_validation_messages(self, field, value, expected):
-        with self.assertRaises(ValidationError) as cm:
+        with self.assertRaisesMessage(ValidationError, expected[0]) as cm:
             field.clean(value, None)
         self.assertEqual(cm.exception.messages, expected)
 

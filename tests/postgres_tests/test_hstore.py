@@ -349,7 +349,9 @@ class TestSerialization(PostgreSQLSimpleTestCase):
 class TestValidation(PostgreSQLSimpleTestCase):
     def test_not_a_string(self):
         field = HStoreField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "The value of “a” is not a string or null."
+        ) as cm:
             field.clean({"a": 1}, None)
         self.assertEqual(cm.exception.code, "not_a_string")
         self.assertEqual(
@@ -370,7 +372,9 @@ class TestFormField(PostgreSQLSimpleTestCase):
 
     def test_invalid_json(self):
         field = forms.HStoreField()
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Could not load JSON data."
+        ) as cm:
             field.clean('{"a": "b"')
         self.assertEqual(cm.exception.messages[0], "Could not load JSON data.")
         self.assertEqual(cm.exception.code, "invalid_json")
@@ -439,7 +443,9 @@ class TestValidator(PostgreSQLSimpleTestCase):
 
     def test_missing_keys(self):
         validator = KeysValidator(keys=["a", "b"])
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Some keys were missing: b"
+        ) as cm:
             validator({"a": "foo", "c": "baz"})
         self.assertEqual(cm.exception.messages[0], "Some keys were missing: b")
         self.assertEqual(cm.exception.code, "missing_keys")
@@ -450,7 +456,9 @@ class TestValidator(PostgreSQLSimpleTestCase):
 
     def test_extra_keys(self):
         validator = KeysValidator(keys=["a", "b"], strict=True)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Some unknown keys were provided: c"
+        ) as cm:
             validator({"a": "foo", "b": "bar", "c": "baz"})
         self.assertEqual(cm.exception.messages[0], "Some unknown keys were provided: c")
         self.assertEqual(cm.exception.code, "extra_keys")
@@ -460,11 +468,13 @@ class TestValidator(PostgreSQLSimpleTestCase):
             "missing_keys": "Foobar",
         }
         validator = KeysValidator(keys=["a", "b"], strict=True, messages=messages)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(exceptions.ValidationError, "Foobar") as cm:
             validator({"a": "foo", "c": "baz"})
         self.assertEqual(cm.exception.messages[0], "Foobar")
         self.assertEqual(cm.exception.code, "missing_keys")
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Some unknown keys were provided: c"
+        ) as cm:
             validator({"a": "foo", "b": "bar", "c": "baz"})
         self.assertEqual(cm.exception.messages[0], "Some unknown keys were provided: c")
         self.assertEqual(cm.exception.code, "extra_keys")
