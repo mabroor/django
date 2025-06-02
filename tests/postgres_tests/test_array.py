@@ -1049,7 +1049,10 @@ class TestStringSerialization(PostgreSQLSimpleTestCase):
 class TestValidation(PostgreSQLSimpleTestCase):
     def test_unbounded(self):
         field = ArrayField(models.IntegerField())
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "Item 2 in the array did not validate: This field cannot be null.",
+        ) as cm:
             field.clean([1, None], None)
         self.assertEqual(cm.exception.code, "item_invalid")
         self.assertEqual(
@@ -1065,7 +1068,10 @@ class TestValidation(PostgreSQLSimpleTestCase):
     def test_with_size(self):
         field = ArrayField(models.IntegerField(), size=3)
         field.clean([1, 2, 3], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "List contains 4 items, it should contain no more than 3.",
+        ) as cm:
             field.clean([1, 2, 3, 4], None)
         self.assertEqual(
             cm.exception.messages[0],
@@ -1082,7 +1088,9 @@ class TestValidation(PostgreSQLSimpleTestCase):
     def test_nested_array_mismatch(self):
         field = ArrayField(ArrayField(models.IntegerField()))
         field.clean([[1, 2], [3, 4]], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "Nested arrays must have the same length."
+        ) as cm:
             field.clean([[1, 2], [3, 4, 5]], None)
         self.assertEqual(cm.exception.code, "nested_array_mismatch")
         self.assertEqual(
@@ -1091,7 +1099,10 @@ class TestValidation(PostgreSQLSimpleTestCase):
 
     def test_with_base_field_error_params(self):
         field = ArrayField(models.CharField(max_length=2))
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "Item 1 in the array did not validate: Ensure this value has at most 2 characters (it has 3).",
+        ) as cm:
             field.clean(["abc"], None)
         self.assertEqual(len(cm.exception.error_list), 1)
         exception = cm.exception.error_list[0]
@@ -1111,7 +1122,10 @@ class TestValidation(PostgreSQLSimpleTestCase):
             models.IntegerField(validators=[validators.MinValueValidator(1)])
         )
         field.clean([1, 2], None)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "Item 1 in the array did not validate: Ensure this value is greater than or equal to 1.",
+        ) as cm:
             field.clean([0], None)
         self.assertEqual(len(cm.exception.error_list), 1)
         exception = cm.exception.error_list[0]
@@ -1134,7 +1148,10 @@ class TestSimpleFormField(PostgreSQLSimpleTestCase):
 
     def test_to_python_fail(self):
         field = SimpleArrayField(forms.IntegerField())
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "Item 1 in the array did not validate: Enter a whole number.",
+        ) as cm:
             field.clean("a,b,9")
         self.assertEqual(
             cm.exception.messages[0],
@@ -1143,7 +1160,10 @@ class TestSimpleFormField(PostgreSQLSimpleTestCase):
 
     def test_validate_fail(self):
         field = SimpleArrayField(forms.CharField(required=True))
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "Item 3 in the array did not validate: This field is required.",
+        ) as cm:
             field.clean("a,b,")
         self.assertEqual(
             cm.exception.messages[0],
@@ -1181,7 +1201,10 @@ class TestSimpleFormField(PostgreSQLSimpleTestCase):
 
     def test_validators_fail(self):
         field = SimpleArrayField(forms.RegexField("[a-e]{2}"))
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "Item 1 in the array did not validate: Enter a valid value.",
+        ) as cm:
             field.clean("a,bc,de")
         self.assertEqual(
             cm.exception.messages[0],
@@ -1205,7 +1228,10 @@ class TestSimpleFormField(PostgreSQLSimpleTestCase):
 
     def test_max_length(self):
         field = SimpleArrayField(forms.CharField(), max_length=2)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "List contains 3 items, it should contain no more than 2.",
+        ) as cm:
             field.clean("a,b,c")
         self.assertEqual(
             cm.exception.messages[0],
@@ -1214,7 +1240,10 @@ class TestSimpleFormField(PostgreSQLSimpleTestCase):
 
     def test_min_length(self):
         field = SimpleArrayField(forms.CharField(), min_length=4)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError,
+            "List contains 3 items, it should contain no fewer than 4.",
+        ) as cm:
             field.clean("a,b,c")
         self.assertEqual(
             cm.exception.messages[0],
@@ -1230,7 +1259,9 @@ class TestSimpleFormField(PostgreSQLSimpleTestCase):
 
     def test_required(self):
         field = SimpleArrayField(forms.CharField(), required=True)
-        with self.assertRaises(exceptions.ValidationError) as cm:
+        with self.assertRaisesMessage(
+            exceptions.ValidationError, "This field is required."
+        ) as cm:
             field.clean("")
         self.assertEqual(cm.exception.messages[0], "This field is required.")
 

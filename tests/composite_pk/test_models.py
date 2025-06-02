@@ -141,9 +141,10 @@ class CompositePKModelsTests(TestCase):
         user = User.objects.get(pk=self.user_1.pk)
         user.id = None
 
-        with self.assertRaises(ValidationError) as ctx:
+        with self.assertRaisesMessage(
+            ValidationError, "User with this Email already exists."
+        ) as ctx:
             user.validate_unique()
-
         self.assertSequenceEqual(
             ctx.exception.messages, ("User with this Email already exists.",)
         )
