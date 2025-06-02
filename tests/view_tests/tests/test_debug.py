@@ -51,6 +51,7 @@ from ..views import (
     paranoid_view,
     sensitive_args_function_caller,
     sensitive_kwargs_function_caller,
+    sensitive_passthrough_view,
     sensitive_method_view,
     sensitive_view,
 )
@@ -1741,6 +1742,18 @@ class ExceptionReporterFilterTests(
             self.verify_safe_email(
                 sensitive_kwargs_function_caller, check_for_POST_params=False
             )
+
+    def test_sensitive_variable_passthrough(self):
+        """
+        Sensitive variables don't leak when passed through another function.
+        """
+        with self.settings(DEBUG=True):
+            self.verify_unsafe_response(sensitive_passthrough_view, check_for_POST_params=False)
+            self.verify_unsafe_email(sensitive_passthrough_view, check_for_POST_params=False)
+
+        with self.settings(DEBUG=False):
+            self.verify_safe_response(sensitive_passthrough_view, check_for_POST_params=False)
+            self.verify_safe_email(sensitive_passthrough_view, check_for_POST_params=False)
 
     def test_callable_settings(self):
         """
